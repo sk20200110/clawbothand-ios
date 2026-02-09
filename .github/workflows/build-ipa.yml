@@ -1,0 +1,49 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14  # Apple Silicon Mac
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install XcodeGen
+      run: |
+        brew install xcodegen
+
+    - name: Generate Xcode project
+      run: xcodegen generate
+
+    - name: Build IPA
+      run: |
+        # Build the app
+        xcodebuild -project Clawhand_iOS.xcodeproj \
+          -scheme Clawhand_iOS \
+          -configuration Debug \
+          -destination 'generic/platform=iOS' \
+          build
+
+        # Package IPA
+        xcodebuild -project Clawhand_iOS.xcodeproj \
+          -scheme Clawhand_iOS \
+          -configuration Debug \
+          -destination 'generic/platform=iOS' \
+          -archivePath build/Clawhand_iOS \
+          archive
+
+        xcodebuild -exportArchive \
+          -archivePath build/Clawhand_iOS.xcarchive \
+          -exportPath build \
+          -exportOptionsPlist Resources/Info.plist
+
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: clawbothand.ipa
+        path: build/Clawhand_iOS.ipa
